@@ -38,6 +38,11 @@ class AnonymousEvent implements ShouldBroadcast
     protected bool $shouldBroadcastNow = false;
 
     /**
+     * Indicates if the event should be broadcast deferred.
+     */
+    protected bool $shouldBroadcastDeferred = false;
+
+    /**
      * Create a new anonymous broadcastable event instance.
      *
      * @return void
@@ -97,6 +102,18 @@ class AnonymousEvent implements ShouldBroadcast
     public function sendNow(): void
     {
         $this->shouldBroadcastNow = true;
+        $this->shouldBroadcastDeferred = false;
+
+        $this->send();
+    }
+
+    /**
+     * Broadcast the event deferred.
+     */
+    public function sendDeferred(): void
+    {
+        $this->shouldBroadcastNow = false;
+        $this->shouldBroadcastDeferred = true;
 
         $this->send();
     }
@@ -147,5 +164,13 @@ class AnonymousEvent implements ShouldBroadcast
     public function shouldBroadcastNow(): bool
     {
         return $this->shouldBroadcastNow;
+    }
+
+    /**
+     * Determine if the event should be broadcast with deferred execution.
+     */
+    public function shouldBroadcastDeferred(): bool
+    {
+        return $this->shouldBroadcastDeferred;
     }
 }

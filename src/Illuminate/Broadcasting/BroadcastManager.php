@@ -13,6 +13,7 @@ use Illuminate\Broadcasting\Broadcasters\RedisBroadcaster;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Broadcasting\Factory as FactoryContract;
 use Illuminate\Contracts\Broadcasting\ShouldBeUnique;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastDeferred;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Bus\Dispatcher as BusDispatcherContract;
 use Illuminate\Contracts\Cache\Repository as Cache;
@@ -171,7 +172,7 @@ class BroadcastManager implements FactoryContract
      * Queue the given event for broadcast.
      *
      * @param  mixed  $event
-     * @return void
+     * @return mixed
      */
     public function queue($event)
     {
@@ -180,6 +181,15 @@ class BroadcastManager implements FactoryContract
              method_exists($event, 'shouldBroadcastNow') &&
              $event->shouldBroadcastNow())) {
             return $this->app->make(BusDispatcherContract::class)->dispatchNow(new BroadcastEvent(clone $event));
+        } else if ($event instanceof ShouldBroadcastDeferred ||
+            (is_object($event) &&
+             method_exists($event, 'shouldBroadcastDeferred') &&
+             $event->shouldBroadcastDeferred())) {
+            return defer(
+                fn () => $this->app->make(BusDispatcherContract::class)->dispatchNow(new BroadcastEvent(clone $event)),
+                method_exists($event, 'broadcastDeferredName') ? (string) $event->broadcastDeferredName() : null,
+                method_exists($event, 'broadcastDeferredAlways') && $event->broadcastDeferredAlways(),
+            );
         }
 
         $queue = null;
